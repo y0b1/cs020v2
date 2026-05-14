@@ -80,3 +80,11 @@ export async function getPreview(jobId, config) {
   }
   return res.json()
 }
+
+/**
+ * Trigger CSV download of benchmark results for a completed job.
+ * Opens the export URL in a new tab so the browser handles the download.
+ */
+export function exportResults(jobId) {
+  window.open(`${BASE}/export/${jobId}`, '_blank')
+}

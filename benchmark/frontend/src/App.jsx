@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Car, AlertCircle } from 'lucide-react'
+import { Car, AlertCircle, Download } from 'lucide-react'
 
 import UploadPanel from './components/UploadPanel'
 import BenchmarkControls from './components/BenchmarkControls'
@@ -9,11 +9,13 @@ import BarChart from './components/BarChart'
 import TradeOffChart from './components/TradeOffChart'
 import WinnerCard from './components/WinnerCard'
 import FramePreview from './components/FramePreview'
+import LiveFeed from './components/LiveFeed'
 
-import { uploadFile, startBenchmark, getStatus, getResults, getSample } from './lib/api'
+import { uploadFile, startBenchmark, getStatus, getResults, getSample, exportResults } from './lib/api'
 
 export default function App() {
   const [jobId, setJobId] = useState(null)
+  const [isVideo, setIsVideo] = useState(false)
   const [status, setStatus] = useState('idle') // idle | uploading | running | done | error
   const [progress, setProgress] = useState(0)
   const [currentConfig, setCurrentConfig] = useState('')
@@ -53,6 +55,9 @@ export default function App() {
   const handleUpload = useCallback(async (file) => {
     setError(null)
     setStatus('uploading')
+    const videoExts = ['mp4', 'avi', 'mov', 'mkv']
+    const ext = file.name.split('.').pop().toLowerCase()
+    setIsVideo(file.type.startsWith('video/') || videoExts.includes(ext))
     try {
       const { job_id } = await uploadFile(file)
       setJobId(job_id)
@@ -150,7 +155,11 @@ export default function App() {
 
           {/* ── Main content ── */}
           <section className="flex flex-col gap-6 min-w-0">
-            {!results && status !== 'running' && (
+            {/* Live feed — shown whenever a video is uploaded */}
+            {jobId && isVideo && <LiveFeed jobId={jobId} />}
+
+            {/* Placeholder — no job uploaded yet, or image uploaded with no results */}
+            {!results && status !== 'running' && (!jobId || !isVideo) && (
               <div
                 className="rounded-xl border border-dashed border-[#222222] p-16 text-center"
                 style={{ background: '#0d0d0d' }}
@@ -163,7 +172,8 @@ export default function App() {
               </div>
             )}
 
-            {status === 'running' && !results && (
+            {/* Spinner — running benchmark on an image (video has live feed instead) */}
+            {status === 'running' && !results && !isVideo && (
               <div
                 className="rounded-xl border border-[#222222] p-16 text-center"
                 style={{ background: '#0d0d0d' }}
@@ -180,6 +190,22 @@ export default function App() {
 
             {results && (
               <>
+                {jobId && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => exportResults(jobId)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={{ background: '#1a1a1a', color: '#71717a', border: '1px solid #222222' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = '#f4f4f5'; e.currentTarget.style.borderColor = '#6366f1' }}
+                      onMouseLeave={e => { e.currentTarget.style.color = '#71717a'; e.currentTarget.style.borderColor = '#222222' }}
+                      title="Download results as CSV for thesis analysis"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export CSV
+                    </button>
+                  </div>
+                )}
+
                 <WinnerCard results={results} />
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
