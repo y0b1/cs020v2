@@ -1,25 +1,23 @@
-# BenchmarkCV — Vehicle Detection Benchmarking App
+# CS-020 — Vehicle Detection Benchmark
 
-Compare YOLOv8 and EfficientDet (solo and ensemble) across accuracy and speed metrics on your own video or image data.
+Compare **YOLOv8** (CNN) and **RT-DETR** (Transformer) — solo and ensemble — across accuracy and speed metrics on your own video.
 
-## What it does
+## Configurations
 
-Runs 4 detection configurations on identical input frames and produces a head-to-head comparison:
-
-| Configuration | Models |
+| Configuration | Description |
 |---|---|
-| YOLOv8 | ultralytics YOLOv8n |
-| EfficientDet | EfficientDet-D0 (effdet) |
-| NMS Ensemble | YOLOv8 + EfficientDet with IoU-NMS fusion |
-| WBF Ensemble | YOLOv8 + EfficientDet with Weighted Box Fusion |
+| YOLOv8 | Ultralytics YOLOv8n — CNN-based |
+| RT-DETR | Ultralytics RT-DETR-L — Transformer-based |
+| NMS Ensemble | YOLOv8 + RT-DETR fused with IoU-NMS |
+| WBF Ensemble | YOLOv8 + RT-DETR fused with Weighted Box Fusion |
 
-**Metrics reported:** Precision · Recall · F1 · mAP@0.5 · mAP@[.5:.95] · Avg Inference (ms) · FPS
+**Metrics:** Precision · Recall · F1 · mAP@0.5 · mAP@[.5:.95] · Temporal Consistency · Inference (ms) · FPS
 
 ---
 
 ## Quick Start
 
-### 1 — Backend
+### Backend
 
 ```bash
 cd benchmark/backend
@@ -27,12 +25,11 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Backend runs on **http://localhost:5000**
+Runs on **http://localhost:5001**
 
-> **Note:** EfficientDet weights download automatically (~50 MB) on first run via `timm`.
-> If `effdet` installation is problematic, swap it with YOLOv9: replace `EfficientDetRunner` calls in `benchmarker.py` with another `YOLOv8Runner(model_size='s')` instance.
+> Model weights (`yolov8n.pt`, `rtdetr-l.pt`) download automatically on first run via Ultralytics.
 
-### 2 — Frontend
+### Frontend
 
 ```bash
 cd benchmark/frontend
@@ -40,15 +37,18 @@ npm install
 npm run dev
 ```
 
-Frontend runs on **http://localhost:5173**
+Runs on **http://localhost:5173**
 
 ---
 
-## Using the UI
+## Usage
 
-1. **Test immediately (no models needed):** Click **"Load Sample Data"** in the sidebar — the full dashboard renders with mock results.
-2. **Real benchmark:** Drag a video (`.mp4`, `.avi`, `.mov`, `.mkv`) or image (`.jpg`, `.png`) onto the upload zone → click **"Run Benchmark"** → watch the 4-config progress tracker.
-3. Results appear automatically: **Winners card**, **Metrics table**, **mAP@0.5 bar chart**, **Speed vs Accuracy scatter**, and **Annotated frame previews**.
+1. **No models needed:** Click **Load Sample Data** to preview the full dashboard with mock results.
+2. **Live feed:** Upload a video — both YOLOv8 and RT-DETR streams appear side-by-side with real-time bounding boxes.
+3. **Benchmark:** Click **Run Benchmark** → progress tracker updates as each config runs → results render automatically.
+4. **Export:** Download all metrics as CSV for analysis.
+
+> **Note:** Models are trained on COCO (street-level images). Use side-view footage (dashcam, traffic camera) for best results — aerial/top-down video will not produce detections.
 
 ---
 
@@ -57,46 +57,43 @@ Frontend runs on **http://localhost:5173**
 ```
 benchmark/
 ├── backend/
-│   ├── app.py                      # Flask API (5 endpoints)
+│   ├── app.py                      # Flask API
 │   ├── models/
-│   │   ├── yolov8_runner.py        # YOLOv8 inference wrapper
-│   │   ├── efficientdet_runner.py  # EfficientDet inference wrapper
-│   │   └── ensemble.py             # NMS + WBF fusion (ensemble_boxes)
+│   │   ├── yolov8_runner.py        # YOLOv8 inference
+│   │   ├── efficientdet_runner.py  # RT-DETR inference
+│   │   └── ensemble.py             # NMS + WBF fusion
 │   ├── evaluation/
-│   │   ├── metrics.py              # Precision/Recall/F1/mAP calculator
+│   │   ├── metrics.py              # Precision/Recall/F1/mAP
 │   │   └── benchmarker.py          # Orchestrates all 4 configs
-│   ├── uploads/                    # Uploaded files stored here
+│   ├── uploads/                    # Uploaded files (gitignored)
 │   └── requirements.txt
 └── frontend/
     ├── src/
-    │   ├── App.jsx                 # Root: state, polling, layout
-    │   ├── components/             # 8 UI components
-    │   └── lib/api.js              # All fetch calls
-    ├── package.json
-    ├── vite.config.js              # Proxy: /api → localhost:5000
+    │   ├── App.jsx                 # Root state + layout
+    │   ├── components/             # UI components
+    │   └── lib/api.js              # API calls
+    ├── vite.config.js              # Proxy: /api → localhost:5001
     └── tailwind.config.js
 ```
 
 ---
 
-## API Endpoints
+## API
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/upload` | Upload video or image → `{ job_id }` |
-| POST | `/api/benchmark/<job_id>` | Start benchmark in background thread |
-| GET | `/api/status/<job_id>` | Poll progress `{ progress, current_config, status }` |
+| POST | `/api/upload` | Upload video/image → `{ job_id }` |
+| POST | `/api/benchmark/<job_id>` | Start benchmark (background thread) |
+| GET | `/api/status/<job_id>` | Poll progress |
 | GET | `/api/results/<job_id>` | Full metrics for all 4 configs |
+| GET | `/api/stream/<job_id>?model=yolov8\|rtdetr` | MJPEG live detection stream |
+| GET | `/api/preview/<job_id>/<config>` | Annotated frame (base64) |
+| GET | `/api/export/<job_id>` | Download results as CSV |
 | GET | `/api/sample` | Mock results (no models needed) |
-| GET | `/api/preview/<job_id>/<config>` | Annotated frame as base64 image |
 
 ---
 
 ## Requirements
 
-**Python:** 3.9+
-**Node:** 18+
-
-**Key Python packages:** `flask`, `ultralytics`, `effdet`, `timm`, `ensemble-boxes`, `opencv-python`, `torch`
-
-**Key npm packages:** `react`, `recharts`, `lucide-react`, `tailwindcss`
+- Python 3.9+ · Node 18+
+- Key packages: `flask`, `ultralytics`, `ensemble-boxes`, `opencv-python`, `torch`
