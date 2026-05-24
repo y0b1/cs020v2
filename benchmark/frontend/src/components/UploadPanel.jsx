@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Upload, FileVideo, CheckCircle2 } from 'lucide-react'
+import { Upload, CheckCircle2 } from 'lucide-react'
 
 const ACCEPTED = '.mp4,.avi,.mov,.mkv,.jpg,.jpeg,.png'
 
@@ -24,7 +24,11 @@ export default function UploadPanel({ onUpload, disabled }) {
     e.preventDefault()
     if (!disabled) setDragging(true)
   }
-  function onDragLeave() { setDragging(false) }
+
+  function onDragLeave() {
+    setDragging(false)
+  }
+
   function onDrop(e) {
     e.preventDefault()
     setDragging(false)
@@ -32,9 +36,18 @@ export default function UploadPanel({ onUpload, disabled }) {
     const file = e.dataTransfer.files?.[0]
     if (file) handleFile(file)
   }
+
   function onClick() {
     if (!disabled) inputRef.current?.click()
   }
+
+  function onKeyDown(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && !disabled) {
+      e.preventDefault()
+      inputRef.current?.click()
+    }
+  }
+
   function onChange(e) {
     const file = e.target.files?.[0]
     if (file) handleFile(file)
@@ -42,49 +55,60 @@ export default function UploadPanel({ onUpload, disabled }) {
   }
 
   return (
-    <div
-      onClick={onClick}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-      className={`rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 ${
-        disabled
-          ? 'opacity-50 cursor-not-allowed border-[#222222] bg-[#111111]'
-          : dragging
-          ? 'border-[#6366f1] bg-[#6366f1]/10 cursor-copy'
-          : fileInfo
-          ? 'border-[#22c55e]/60 bg-[#22c55e]/5 cursor-pointer hover:border-[#22c55e]'
-          : 'border-[#333333] bg-[#111111] cursor-pointer hover:border-[#6366f1]/60 hover:bg-[#6366f1]/5'
-      }`}
-      style={dragging ? { boxShadow: '0 0 20px #6366f130' } : {}}
-    >
-      {fileInfo ? (
-        <>
-          <CheckCircle2 className="w-10 h-10 mx-auto mb-3" style={{ color: '#22c55e' }} />
-          <p className="text-[#f4f4f5] font-medium text-sm truncate px-2">{fileInfo.name}</p>
-          <p className="text-[#71717a] text-xs mt-1">{fileInfo.size}</p>
-          {!disabled && (
-            <p className="text-[#71717a] text-xs mt-2">Click to replace</p>
+    <div className="panel p-4">
+      <div className="mb-3">
+        <p className="panel-kicker">Input</p>
+        <h2 className="panel-title mt-1">Source File</h2>
+      </div>
+
+      <div
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        className={`min-h-[184px] rounded-lg border border-dashed p-5 text-center transition-all duration-200 ${
+          disabled
+            ? 'cursor-not-allowed border-neutral-700 bg-[#0b0b0b] opacity-60'
+            : dragging
+            ? 'cursor-copy border-white bg-[#171717]'
+            : fileInfo
+            ? 'cursor-pointer border-white bg-[#171717] hover:border-neutral-300'
+            : 'cursor-pointer border-neutral-700 bg-[#0b0b0b] hover:border-white hover:bg-[#171717]'
+        }`}
+      >
+        <div className="flex h-full min-h-[140px] flex-col items-center justify-center">
+          {fileInfo ? (
+            <>
+              <CheckCircle2 className="mb-3 h-9 w-9 text-white" />
+              <p className="max-w-full truncate px-2 text-sm font-semibold text-neutral-100">{fileInfo.name}</p>
+              <p className="mt-1 text-xs text-neutral-500">{fileInfo.size}</p>
+              {!disabled && (
+                <p className="mt-3 text-xs font-medium text-neutral-400">Click to replace</p>
+              )}
+            </>
+          ) : (
+            <>
+              <Upload className={`mb-3 h-9 w-9 ${dragging ? 'text-white' : 'text-neutral-500'}`} />
+              <p className="text-sm font-semibold text-neutral-100">Drop video or image</p>
+              <p className="mt-1 text-xs text-neutral-500">or click to browse</p>
+              <p className="mt-4 text-xs text-neutral-600">mp4 / avi / mov / mkv / jpg / png</p>
+            </>
           )}
-        </>
-      ) : (
-        <>
-          <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: dragging ? '#6366f1' : '#71717a' }} />
-          <p className="text-[#f4f4f5] font-medium text-sm">
-            Drop video or images here
-          </p>
-          <p className="text-[#71717a] text-xs mt-1">or click to browse</p>
-          <p className="text-[#333333] text-xs mt-3">mp4 · avi · mov · mkv · jpg · png</p>
-        </>
-      )}
-      <input
-        ref={inputRef}
-        type="file"
-        className="hidden"
-        accept={ACCEPTED}
-        onChange={onChange}
-        disabled={disabled}
-      />
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept={ACCEPTED}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      </div>
     </div>
   )
 }

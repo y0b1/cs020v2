@@ -28,30 +28,33 @@ export default function FramePreview({ jobId }) {
   }, [jobId])
 
   return (
-    <div className="bg-[#111111] border border-[#222222] rounded-xl p-5">
-      <h2 className="text-[#f4f4f5] font-semibold text-lg mb-4">Annotated Frame Previews</h2>
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="panel p-4 sm:p-5">
+      <div className="mb-4">
+        <p className="panel-kicker">Preview</p>
+        <h2 className="panel-title mt-1">Annotated Frames</h2>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {CONFIGS.map(config => (
-          <div key={config} className="flex flex-col gap-2">
-            <p className="text-[#71717a] text-xs text-center font-medium">{config}</p>
-            <div
-              className="rounded-lg overflow-hidden border border-[#222222] bg-[#0a0a0a]"
-              style={{ aspectRatio: '1 / 1' }}
-            >
+          <div key={config} className="min-w-0">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="truncate text-xs font-bold text-neutral-400">{config}</p>
+            </div>
+            <div className="aspect-square overflow-hidden rounded-lg border border-neutral-800 bg-[#0b0b0b]">
               {loading[config] ? (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#6366f1' }} />
+                <div className="flex h-full w-full items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
                 </div>
               ) : previews[config] ? (
                 <img
                   src={previews[config]}
                   alt={`${config} preview`}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-                  <ImageOff className="w-6 h-6" style={{ color: '#71717a' }} />
-                  <span className="text-xs" style={{ color: '#71717a' }}>No preview</span>
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+                  <ImageOff className="h-6 w-6 text-neutral-600" />
+                  <span className="text-xs font-medium text-neutral-600">No preview</span>
                 </div>
               )}
             </div>

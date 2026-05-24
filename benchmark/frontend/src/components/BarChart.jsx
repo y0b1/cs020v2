@@ -1,79 +1,47 @@
-import {
-  BarChart as RechartsBar,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts'
-
 const CONFIGS = ['YOLOv8', 'RT-DETR', 'NMS Ensemble', 'WBF Ensemble']
-const COLORS = {
-  'YOLOv8': '#6366f1',
-  'RT-DETR': '#f59e0b',
-  'NMS Ensemble': '#22c55e',
-  'WBF Ensemble': '#ec4899',
-}
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{
-      background: '#111111',
-      border: '1px solid #333333',
-      borderRadius: 8,
-      padding: '8px 14px',
-    }}>
-      <p style={{ color: '#f4f4f5', fontWeight: 600, marginBottom: 4 }}>{label}</p>
-      <p style={{ color: '#6366f1', margin: 0 }}>
-        mAP@0.5: {(payload[0].value * 100).toFixed(1)}%
-      </p>
-    </div>
-  )
-}
 
 export default function BarChart({ results }) {
   const data = CONFIGS.map(config => ({
     name: config,
-    mAP50: results[config]?.mAP50 ?? 0,
+    value: results[config]?.mAP50 ?? 0,
   }))
+  const best = Math.max(...data.map(item => item.value), 1)
+  const bestName = data.reduce((bestItem, item) => item.value > bestItem.value ? item : bestItem, data[0])?.name
 
   return (
-    <div className="bg-[#111111] border border-[#222222] rounded-xl p-5">
-      <h2 className="text-[#f4f4f5] font-semibold text-lg mb-4">mAP@0.5 Comparison</h2>
-      <ResponsiveContainer width="100%" height={260}>
-        <RechartsBar data={data} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
-          <XAxis
-            dataKey="name"
-            tick={{ fill: '#71717a', fontSize: 11 }}
-            axisLine={{ stroke: '#333333' }}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[0, 1]}
-            tickFormatter={v => `${(v * 100).toFixed(0)}%`}
-            tick={{ fill: '#71717a', fontSize: 11 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.08)' }} />
-          <Bar dataKey="mAP50" radius={[4, 4, 0, 0]} maxBarSize={56}>
-            {data.map(entry => (
-              <Cell key={entry.name} fill={COLORS[entry.name]} />
-            ))}
-          </Bar>
-        </RechartsBar>
-      </ResponsiveContainer>
-      <div className="flex flex-wrap gap-4 mt-3 justify-center">
-        {CONFIGS.map(c => (
-          <div key={c} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[c] }} />
-            <span style={{ color: '#71717a', fontSize: 12 }}>{c}</span>
-          </div>
-        ))}
+    <div className="panel min-w-0 p-4 sm:p-5">
+      <div className="mb-5">
+        <p className="panel-kicker">Accuracy</p>
+        <h2 className="panel-title mt-1">mAP@0.5 Comparison</h2>
+      </div>
+
+      <div className="space-y-4">
+        {data.map(item => {
+          const percent = item.value * 100
+          const width = `${Math.max(3, (item.value / best) * 100)}%`
+
+          return (
+            <div key={item.name}>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`h-2.5 w-2.5 flex-shrink-0 rounded-sm ${item.name === bestName ? 'bg-white' : 'bg-neutral-500'}`} />
+                  <span className="truncate text-sm font-semibold text-neutral-300">{item.name}</span>
+                </div>
+                <span className="font-mono text-sm font-extrabold text-neutral-100">{percent.toFixed(1)}%</span>
+              </div>
+              <div className="h-8 overflow-hidden rounded-lg border border-neutral-800 bg-[#0b0b0b]">
+                <div
+                  style={{ width }}
+                  className={`flex h-full items-center justify-end rounded-md pr-2 transition-all duration-500 ${
+                    item.name === bestName ? 'bg-white text-black' : 'bg-neutral-500 text-white'
+                  }`}
+                >
+                  <span className="text-[0.68rem] font-bold">{percent.toFixed(0)}%</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

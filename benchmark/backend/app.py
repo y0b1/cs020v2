@@ -34,6 +34,21 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def resize_preserve_aspect(frame, max_side=640):
+    """Resize a frame for display/inference without changing its aspect ratio."""
+    height, width = frame.shape[:2]
+    if height <= 0 or width <= 0:
+        return frame
+
+    scale = min(1.0, max_side / max(height, width))
+    if scale == 1.0:
+        return frame
+
+    new_width = max(1, int(width * scale))
+    new_height = max(1, int(height * scale))
+    return cv2.resize(frame, (new_width, new_height), interpolation=cv2.INTER_AREA)
+
+
 # ============================================================
 # API ENDPOINTS
 # ============================================================
@@ -149,7 +164,7 @@ def get_preview(job_id, config):
             if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
                 img_path = os.path.join(job_path, file)
                 frame = cv2.imread(img_path)
-                frame = cv2.resize(frame, (640, 640))
+                frame = resize_preserve_aspect(frame)
                 break
         
         # If no image, try video
@@ -161,7 +176,7 @@ def get_preview(job_id, config):
                     ret, frame = cap.read()
                     cap.release()
                     if ret:
-                        frame = cv2.resize(frame, (640, 640))
+                        frame = resize_preserve_aspect(frame)
                     break
         
         if frame is None:
@@ -202,7 +217,7 @@ def get_preview(job_id, config):
 @app.route('/api/stream/<job_id>')
 def stream_video(job_id):
     """
-    MJPEG stream of the uploaded video with live detection annotations.
+    MJPEG playback stream of the uploaded video with detection annotations.
     Query param: model=yolov8 (default) | model=rtdetr
     Use as: <img src="/api/stream/<job_id>?model=yolov8">
     """
@@ -242,7 +257,7 @@ def stream_video(job_id):
                     if not ret:
                         break
 
-                frame = cv2.resize(frame, (640, 640))
+                frame = resize_preserve_aspect(frame)
 
                 if runner:
                     try:
